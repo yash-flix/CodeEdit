@@ -1,7 +1,33 @@
 import "./App.css"
 import {Editor} from "@monaco-editor/react"
+import {MonacoBinding} from "y-monaco"
+import {useRef  , useMemo} from "react"
+import * as Y from "yjs"
+import {SocketIOProvider} from "y-socket.io"
+
 function App() {
   
+// stores editor instance
+const editorRef = useRef(null);
+
+ // create shared Yjs document
+ const ydoc = useMemo(()=> new Y.Doc(),[]);
+ const ytext = useMemo(()=> ydoc.getText("monaco"), [ydoc]);
+
+
+const handleMount = (editor)=>
+{
+  editorRef.current = editor; //actual Monaco editor instance
+
+  const provider = new SocketIOProvider("http://localhost:3000" , "monaco" , ydoc , {autoConnect: true}); //internet messenger for collaboration
+
+  const monacoBinding = new MonacoBinding( //translator between Monaco and Yjs
+    ytext ,
+    editorRef.current.getModel() ,    //actual text document inside Monaco
+    new Set([editorRef.current]) ,   
+    provider.awareness //live user cursor/selection data
+  )
+}
 
   return (
    <main className="h-screen w-full bg-gray-950 flex gap-4 p-4" >
@@ -13,6 +39,7 @@ function App() {
             defaultLanguage = "javascript"
             defaultValue="//some comment"
             theme="vs-dark"
+            onMount={handleMount}
             /> </section>
 
    </main>
