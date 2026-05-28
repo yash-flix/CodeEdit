@@ -10,8 +10,11 @@ const [username , setUsername] = useState(()=>
 {
   return new URLSearchParams(window.location.search).get("username") || "";
 });
+
 const [users , setUsers] = useState([]);
+
 const [editorReady , setEditorReady] = useState(false);
+
 // stores editor instance
 const editorRef = useRef(null);
 
@@ -24,13 +27,17 @@ const handleMount = (editor)=>
 {
   editorRef.current = editor; //actual Monaco editor instance
   setEditorReady(true);
+
+   
 }
+
 const handleJoin = (e)=>
 {
   e.preventDefault();
   setUsername(e.target.username.value);
   window.history.pushState({} , "", "?username=" + e.target.username.value);
 }
+
 const provider = useMemo(() => {
 
   if (!username) return null
@@ -43,16 +50,64 @@ const provider = useMemo(() => {
   )
 
 }, [username, ydoc])
+
 useEffect(()=>
 {
 if(!username || !editorReady || !provider) return;
 
   provider.awareness.setLocalStateField("user" , {username});
-  provider.awareness.on("change" , ()=>
-  {
-    const states = Array.from(provider.awareness.getStates().values());
-    setUsers(states.filter(state=> state.user?.username).map(state=> state.user));
-  })
+
+//  const states =  Array.from(provider.awareness.getStates().values());
+//  console.log(states); 
+//   setUsers(states.filter(state=> state.user?.username).map(state=> state.user));
+
+
+  const states = Array.from(
+    provider.awareness.getStates().values()
+  );
+
+  const uniqueUsers = [
+    ...new Map(
+      states
+        .filter(state => state.user?.username)
+        .map(state => [
+          state.user.username,
+          state.user
+        ])
+    ).values()
+  ];
+
+  setUsers(uniqueUsers);
+
+
+  provider.awareness.on("change", () => {
+
+  const states = Array.from(
+    provider.awareness.getStates().values()
+  );
+
+  const uniqueUsers = [
+    ...new Map(
+      states
+        .filter(state => state.user?.username)
+        .map(state => [
+          state.user.username,
+          state.user
+        ])
+    ).values()
+  ];
+
+  setUsers(uniqueUsers);
+});
+
+   const monacoBinding = new MonacoBinding( //translator between Monaco and Yjs
+    ytext ,
+    editorRef.current.getModel() ,    //actual text document inside Monaco
+    new Set([editorRef.current]) ,   
+    provider.awareness //live user cursor/selection data
+  ); 
+
+ 
 
  function handleBeforeUnload()
  {
@@ -65,12 +120,7 @@ if (ytext.length === 0) {
   ytext.insert(0, "// Start coding...\n")
 }
 
-  const monacoBinding = new MonacoBinding( //translator between Monaco and Yjs
-    ytext ,
-    editorRef.current.getModel() ,    //actual text document inside Monaco
-    new Set([editorRef.current]) ,   
-    provider.awareness //live user cursor/selection data
-  );
+
   return()=>
   {
     monacoBinding.destroy();
@@ -79,7 +129,7 @@ if (ytext.length === 0) {
   
 }
 
-} , [editorReady, username])
+} , [editorReady, username , provider])
 
   if (!username)
   {
@@ -159,7 +209,20 @@ if (ytext.length === 0) {
   return (
    <main className="h-screen w-full bg-gray-950 flex gap-4 p-4" >
     
-    <aside className="h-full w-1/4 bg-amber-100 rounded-lg" ></aside>
+    <aside className="h-full w-1/4 bg-amber-100 rounded-lg" >
+    <h2 className="text-lg font-bold text-gray-800">Users</h2>
+    <br/>
+    <ul className="p-4">
+      {users.map((user,index)=>
+(
+  <li key={index} className="text-blue-300">
+    {user.username}
+  </li>
+))}
+     
+      
+    </ul>
+    </aside>
 
     <section className="w-3/4 bg-neutral-800 rounded-lg">
     <Editor height="100% "
