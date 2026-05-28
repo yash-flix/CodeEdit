@@ -1,35 +1,17 @@
-import express from "express"
-import {createServer} from "http"
-import {Server} from "socket.io"
-import {YSocketIO} from "y-socket.io/dist/server"
+import http from "http";
+import { WebSocketServer } from "ws";
+import { setupWSConnection } from "y-websocket/bin/utils";
 
+const server = http.createServer();
 
-const app = express();
-const httpServer = createServer(app);
+const wss = new WebSocketServer({
+  server,
+});
 
+wss.on("connection", (conn, req) => {
+  setupWSConnection(conn, req);
+});
 
-//server health check 
-app.get("/" , (req,res)=>
-{
-    res.status(200).json({message: "Hello World" , success : true});
-})
-
-app.get("/health" , (req,res)=>
-{
-    res.status(200).json({message:"Server is healthy" , success: true});
-})
-
-const io = new Server(httpServer , {
-    cors : {
-        origin : "*" ,
-        methods : ["GET", "POST"]
-    }
-})
-
-const ySocketIO = new YSocketIO(io);
-ySocketIO.initialize();
-
-httpServer.listen(3000, ()=>
-{
-    console.log("Server is running on port 3000");
-})
+server.listen(1234, () => {
+  console.log("WebSocket server running on port 1234");
+});

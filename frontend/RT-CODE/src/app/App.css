@@ -1,8 +1,18 @@
+
 @import "tailwindcss";
+@import "tailwindcss";
+
+/* =========================
+   REMOTE SELECTION
+========================= */
 
 .yRemoteSelection {
   background-color: rgba(59, 130, 246, 0.25);
 }
+
+/* =========================
+   REMOTE CURSOR
+========================= */
 
 .yRemoteSelectionHead {
   position: absolute;
@@ -13,15 +23,26 @@
   box-sizing: border-box;
 }
 
+/* =========================
+   USERNAME LABEL
+========================= */
+
 .yRemoteSelectionHead::after {
   position: absolute;
-  content: attr(data-username);
   top: -20px;
   left: -2px;
+
+  content: "User";
+
   font-size: 12px;
+  font-family: sans-serif;
+
   background-color: #3b82f6;
   color: white;
+
   padding: 2px 6px;
-  border-radius: 6px;
+
+  border-radius: 4px;
+
   white-space: nowrap;
 }

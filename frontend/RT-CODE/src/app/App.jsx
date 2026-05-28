@@ -9,7 +9,8 @@ import {
 } from "react"
 
 import * as Y from "yjs"
-import { SocketIOProvider } from "y-socket.io"
+// import { SocketIOProvider } from "y-socket.io"
+import { WebsocketProvider } from "y-websocket"
 
 function App() {
 
@@ -118,8 +119,8 @@ function App() {
 
     if (!username) return null;
 
-    return new SocketIOProvider(
-      "http://localhost:3000",
+    return new WebsocketProvider(
+      "ws://localhost:1234",
       "monaco",
       ydoc,
       {
@@ -155,7 +156,7 @@ function App() {
       }
     );
     
-
+    provider.awareness.setLocalStateField( "cursor", { anchor: 0, head: 0 } );
 
    
     // ONLINE USERS LISTENER
