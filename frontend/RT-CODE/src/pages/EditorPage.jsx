@@ -1,7 +1,8 @@
 import { Editor } from "@monaco-editor/react";
+import { clearRoomSession, getRoomSession, setRoomSession } from "../app/session";
 import { MonacoBinding } from "y-monaco";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
@@ -16,6 +17,7 @@ function EditorPage() {
   const [searchParams] = useSearchParams();
   const username = searchParams.get("username")?.trim() || "";
   const [users, setUsers] = useState([]);
+  const [notes, setNotes] = useState("");
   const [editorReady, setEditorReady] = useState(false);
   const editorRef = useRef(null);
   const userColorRef = useRef(getRandomColor());
@@ -40,9 +42,19 @@ function EditorPage() {
   }, [roomId, username, ydoc]);
 
   useEffect(() => {
+    const session = getRoomSession();
+
     if (!username || !roomId) {
       navigate("/", { replace: true });
+      return;
     }
+
+    if (!session || session.roomId !== roomId || session.username !== username) {
+      navigate(`/?username=${encodeURIComponent(username)}`, { replace: true });
+      return;
+    }
+
+    setRoomSession({ roomId, username });
   }, [navigate, roomId, username]);
 
   const handleMount = editor => {
@@ -114,10 +126,32 @@ function EditorPage() {
     };
   }, [ydoc]);
 
+  const handleLeaveRoom = () => {
+    clearRoomSession();
+    navigate(`/?username=${encodeURIComponent(username)}`, { replace: true });
+  };
+
   return (
     <main className="editor-shell">
       <aside className="sidebar">
-        <div className="sidebar-block">
+        <div className="sidebar-topbar">
+          <button
+            type="button"
+            className="nav-link nav-link-ghost"
+            onClick={handleLeaveRoom}
+          >
+            Exit room
+          </button>
+          <button
+            type="button"
+            className="nav-link"
+            onClick={handleLeaveRoom}
+          >
+            Join another
+          </button>
+        </div>
+
+        <div className="sidebar-block room-summary">
           <p className="eyebrow">Room</p>
           <h1>{roomId}</h1>
           <p className="room-meta">Signed in as {username}</p>
@@ -142,10 +176,17 @@ function EditorPage() {
           </ul>
         </div>
 
-        <div className="sidebar-block">
-          <Link className="secondary-link" to="/">
-            Switch room
-          </Link>
+        <div className="sidebar-block notes-card">
+          <div className="sidebar-heading-row">
+            <h2>Notes</h2>
+            <span className="notes-badge">Local</span>
+          </div>
+          <textarea
+            className="notes-input"
+            placeholder="Scratch ideas, TODOs, meeting points..."
+            value={notes}
+            onChange={event => setNotes(event.target.value)}
+          />
         </div>
       </aside>
 

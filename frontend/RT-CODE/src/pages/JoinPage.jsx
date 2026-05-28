@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getRoomSession, setRoomSession } from "../app/session";
+import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 function createRoomId() {
@@ -7,8 +9,22 @@ function createRoomId() {
 
 function JoinPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [searchParams] = useSearchParams();
+  const [username, setUsername] = useState(() => searchParams.get("username") || "");
   const [roomId, setRoomId] = useState(() => createRoomId());
+
+  useEffect(() => {
+    const activeSession = getRoomSession();
+
+    if (!activeSession?.roomId || !activeSession?.username) {
+      return;
+    }
+
+    navigate(
+      `/room/${encodeURIComponent(activeSession.roomId)}?username=${encodeURIComponent(activeSession.username)}`,
+      { replace: true }
+    );
+  }, [navigate]);
 
   const handleJoin = event => {
     event.preventDefault();
@@ -20,8 +36,14 @@ function JoinPage() {
       return;
     }
 
+    setRoomSession({
+      roomId: nextRoomId,
+      username: nextUsername,
+    });
+
     navigate(
-      `/room/${encodeURIComponent(nextRoomId)}?username=${encodeURIComponent(nextUsername)}`
+      `/room/${encodeURIComponent(nextRoomId)}?username=${encodeURIComponent(nextUsername)}`,
+      { replace: true }
     );
   };
 
