@@ -29,17 +29,32 @@ function EditorPage() {
 
     return new Y.Doc();
   }, [roomId]);
+  
   const ytext = useMemo(() => ydoc.getText("monaco"), [ydoc]);
+  const websocketUrl = useMemo(() => {
+    const configuredUrl = import.meta.env.VITE_WS_URL?.trim();
+
+    if (configuredUrl) {
+      return configuredUrl;
+    }
+
+    if (typeof window !== "undefined") {
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      return `${protocol}://${window.location.host}`;
+    }
+
+    return "ws://localhost:1234";
+  }, []);
 
   const provider = useMemo(() => {
     if (!username || !roomId) {
       return null;
     }
 
-    return new WebsocketProvider("ws://localhost:1234", roomId, ydoc, {
+    return new WebsocketProvider(websocketUrl, roomId, ydoc, {
       autoConnect: true,
     });
-  }, [roomId, username, ydoc]);
+  }, [roomId, username, websocketUrl, ydoc]);
 
   useEffect(() => {
     const session = getRoomSession();
