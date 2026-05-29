@@ -330,7 +330,7 @@ body {
   top: -20px;
   left: -2px;
 
-  content: "User";
+  /* content: "User"; */
 
   font-size: 12px;
   font-family: sans-serif;
