@@ -1,24 +1,32 @@
 
 #build for frontend 
-FROM node:20-alphine as frontend-builder
-
-COPY ./frontend /app 
+FROM node:22-alpine
 
 WORKDIR /app
 
-RUN npm install 
+COPY frontend/RT-CODE/package*.json ./
 
-RUN npm run build 
+RUN npm install
 
-#buold for backend
-FROM node:20-alphine as backend-builder
+COPY frontend/RT-CODE .
 
-COPY ./backend /app
+RUN npm run build
 
-WORKDIR /app 
+EXPOSE 5173
 
-RUN npm install 
+CMD ["npm","run","dev","--","--host"]
 
-COPY --from=frontend-builder /app/dist /app/public
+#build for backend
+FROM node:22-alpine
 
-CMD ["node" , "server.js"]
+WORKDIR /app
+
+COPY backend/package*.json ./
+
+RUN npm install
+
+COPY backend .
+
+EXPOSE 3000
+
+CMD ["node","server.js"]
