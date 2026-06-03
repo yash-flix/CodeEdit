@@ -11,6 +11,41 @@ function getRandomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
+const LANGUAGE_OPTIONS = [
+  {
+    value: "javascript",
+    label: "JavaScript",
+    monacoLanguage: "javascript",
+    starter: 'console.log("Hello from JavaScript");\n',
+  },
+  {
+    value: "python",
+    label: "Python",
+    monacoLanguage: "python",
+    starter: 'print("Hello from Python")\n',
+  },
+  {
+    value: "java",
+    label: "Java",
+    monacoLanguage: "java",
+    starter:
+      'public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}\n',
+  },
+];
+
+const DEFAULT_LANGUAGE = LANGUAGE_OPTIONS[0].value;
+
+function getLanguageConfig(language) {
+  return (
+    LANGUAGE_OPTIONS.find(option => option.value === language) ??
+    LANGUAGE_OPTIONS[0]
+  );
+}
+
+function isSupportedLanguage(language) {
+  return LANGUAGE_OPTIONS.some(option => option.value === language);
+}
+
 function EditorPage() {
   const navigate = useNavigate();
   const { roomId = "" } = useParams();
@@ -18,6 +53,12 @@ function EditorPage() {
   const username = searchParams.get("username")?.trim() || "";
   const [users, setUsers] = useState([]);
   const [notes, setNotes] = useState("");
+  const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
+  const [runState, setRunState] = useState({
+    isRunning: false,
+    output: "",
+    error: "",
+  });
   const [editorReady, setEditorReady] = useState(false);
   const editorRef = useRef(null);
   const userColorRef = useRef(getRandomColor());
@@ -31,6 +72,7 @@ function EditorPage() {
   }, [roomId]);
   
   const ytext = useMemo(() => ydoc.getText("monaco"), [ydoc]);
+  const roomMeta = useMemo(() => ydoc.getMap("room-meta"), [ydoc]);
   const websocketUrl = useMemo(() => {
     const configuredUrl = import.meta.env.VITE_WS_URL?.trim();
 
@@ -39,6 +81,11 @@ function EditorPage() {
     }
 
     if (typeof window !== "undefined") {
+      if (import.meta.env.DEV) {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        return `${protocol}://${window.location.hostname}:1234`;
+      }
+
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       return `${protocol}://${window.location.host}`;
     }
@@ -71,6 +118,30 @@ function EditorPage() {
 
     setRoomSession({ roomId, username });
   }, [navigate, roomId, username]);
+
+  useEffect(() => {
+    const syncLanguage = () => {
+      const nextLanguage = roomMeta.get("language");
+
+      if (typeof nextLanguage === "string" && isSupportedLanguage(nextLanguage)) {
+        setLanguage(nextLanguage);
+        return;
+      }
+
+      setLanguage(DEFAULT_LANGUAGE);
+    };
+
+    if (!roomMeta.get("language")) {
+      roomMeta.set("language", DEFAULT_LANGUAGE);
+    }
+
+    roomMeta.observe(syncLanguage);
+    syncLanguage();
+
+    return () => {
+      roomMeta.unobserve(syncLanguage);
+    };
+  }, [roomMeta]);
 
   const handleMount = editor => {
     editorRef.current = editor;
@@ -109,7 +180,7 @@ function EditorPage() {
     handleAwarenessChange();
 
     if (ytext.length === 0) {
-      ytext.insert(0, "// Start coding...\n");
+      ytext.insert(0, getLanguageConfig(roomMeta.get("language")).starter);
     }
 
     const monacoBinding = new MonacoBinding(
@@ -133,7 +204,7 @@ function EditorPage() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       setUsers([]);
     };
-  }, [editorReady, provider, username, ytext]);
+  }, [editorReady, provider, roomMeta, username, ytext]);
 
   useEffect(() => {
     return () => {
@@ -141,10 +212,60 @@ function EditorPage() {
     };
   }, [ydoc]);
 
+  const handleLanguageChange = event => {
+    const nextLanguage = event.target.value;
+    const nextConfig = getLanguageConfig(nextLanguage);
+
+    roomMeta.set("language", nextConfig.value);
+
+    if (ytext.length === 0) {
+      ytext.insert(0, nextConfig.starter);
+    }
+  };
+
+  const handleRunCode = async () => {
+    setRunState({
+      isRunning: true,
+      output: "",
+      error: "",
+    });
+
+    try {
+      const response = await fetch("/api/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language,
+          code: ytext.toString(),
+        }),
+      });
+
+      const result = await response.json();
+
+      setRunState({
+        isRunning: false,
+        output: result.output || "",
+        error: result.error || "",
+      });
+    } catch (error) {
+      setRunState({
+        isRunning: false,
+        output: "",
+        error: error instanceof Error ? error.message : "Failed to run code.",
+      });
+    }
+  };
+
   const handleLeaveRoom = () => {
     clearRoomSession();
     navigate(`/?username=${encodeURIComponent(username)}`, { replace: true });
   };
+
+  const outputText =
+    [runState.output, runState.error].filter(Boolean).join("\n") ||
+    "Run the current room code to see output here.";
 
   return (
     <main className="editor-shell">
@@ -193,6 +314,22 @@ function EditorPage() {
 
         <div className="sidebar-block notes-card">
           <div className="sidebar-heading-row">
+            <h2>Language</h2>
+            <span className="notes-badge">Room</span>
+          </div>
+          <label className="field select-field">
+            <select value={language} onChange={handleLanguageChange}>
+              {LANGUAGE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="sidebar-block notes-card">
+          <div className="sidebar-heading-row">
             <h2>Notes</h2>
             <span className="notes-badge">Local</span>
           </div>
@@ -206,16 +343,43 @@ function EditorPage() {
       </aside>
 
       <section className="editor-panel">
-        <Editor
-          height="100%"
-          defaultLanguage="javascript"
-          theme="vs-dark"
-          onMount={handleMount}
-          options={{
-            cursorSmoothCaretAnimation: "on",
-            smoothScrolling: true,
-          }}
-        />
+        <div className="editor-toolbar">
+          <div className="toolbar-pill">
+            {getLanguageConfig(language).label}
+          </div>
+          <button
+            type="button"
+            className="primary-button run-button"
+            onClick={handleRunCode}
+            disabled={runState.isRunning}
+          >
+            {runState.isRunning ? "Running..." : "Run Code"}
+          </button>
+        </div>
+
+        <div className="editor-canvas">
+          <Editor
+            height="100%"
+            language={getLanguageConfig(language).monacoLanguage}
+            theme="vs-dark"
+            onMount={handleMount}
+            options={{
+              cursorSmoothCaretAnimation: "on",
+              smoothScrolling: true,
+            }}
+          />
+        </div>
+
+        <div className="output-panel">
+          <div className="sidebar-heading-row">
+            <h2>Output</h2>
+            <span className="notes-badge">Run</span>
+          </div>
+
+          <pre className={`output-console${runState.error ? " output-console-error" : ""}`}>
+            {outputText}
+          </pre>
+        </div>
       </section>
     </main>
   );

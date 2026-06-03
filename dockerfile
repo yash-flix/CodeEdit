@@ -1,32 +1,29 @@
+FROM node:22-alpine AS frontend-build
 
-#build for frontend 
-FROM node:22-alpine
-
-WORKDIR /app
+WORKDIR /app/frontend
 
 COPY frontend/RT-CODE/package*.json ./
+RUN npm ci
 
-RUN npm install
-
-COPY frontend/RT-CODE .
-
+COPY frontend/RT-CODE/ ./
 RUN npm run build
 
-EXPOSE 5173
+FROM node:22-alpine AS backend-runtime
 
-CMD ["npm","run","dev","--","--host"]
+WORKDIR /app/backend
 
-#build for backend
-FROM node:22-alpine
-
-WORKDIR /app
+RUN apk add --no-cache python3 openjdk17-jdk \
+  && ln -sf /usr/bin/python3 /usr/local/bin/python
 
 COPY backend/package*.json ./
+RUN npm ci --omit=dev
 
-RUN npm install
+COPY backend/ ./
+COPY --from=frontend-build /app/frontend/dist/ ./public/
 
-COPY backend .
+ENV NODE_ENV=production
+ENV PORT=1234
 
-EXPOSE 3000
+EXPOSE 1234
 
-CMD ["node","server.js"]
+CMD ["node", "server.js"]
