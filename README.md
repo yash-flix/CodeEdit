@@ -5,6 +5,9 @@
 Built with **Monaco Editor**, **Yjs**, **WebSockets**, **Docker**, and deployed on **AWS ECS Fargate**.
 
 ---
+<img width="1363" height="625" alt="image" src="https://github.com/user-attachments/assets/8c185506-3c95-4d95-8556-68a78298c53d" />
+<img width="1345" height="642" alt="image" src="https://github.com/user-attachments/assets/edaab6e0-fcad-49c5-b141-a661925dfbb1" />
+
 
 ## 🌐 Live Demo
 
