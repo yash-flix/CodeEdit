@@ -61,44 +61,11 @@ function JoinPage() {
             Write, run, and review code with teammates in the same live workspace.
           </p>
 
-          <div className="iso-scene" aria-label="Isometric collaborative code editor preview">
-            <div className="iso-window iso-window-main">
-              <div className="iso-window-head">
-                <span className="iso-dot" />
-                <span className="iso-dot" />
-                <span className="iso-dot" />
-                <b>&lt;/&gt;</b>
-              </div>
-              <div className="iso-code">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
-            </div>
-            <div className="iso-window iso-window-terminal">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="iso-window iso-window-chat">
-              <span />
-              <span />
-            </div>
-            <div className="iso-desk iso-desk-one">
-              <span />
-              <b />
-            </div>
-            <div className="iso-desk iso-desk-two">
-              <span />
-              <b />
-            </div>
-            <div className="iso-ring" />
-            <div className="iso-gear iso-gear-one" />
-            <div className="iso-gear iso-gear-two" />
-            <div className="iso-cable iso-cable-one" />
-            <div className="iso-cable iso-cable-two" />
+          <div className="join-hero-visual">
+            <img
+              src="/iso.png"
+              alt="Isometric illustration of a team collaborating on code around a shared monitor"
+            />
           </div>
         </div>
 
