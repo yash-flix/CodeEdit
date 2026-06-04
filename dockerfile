@@ -3,6 +3,7 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /app/frontend
 
 COPY frontend/RT-CODE/package*.json ./
+COPY frontend/RT-CODE/scripts ./scripts
 RUN npm ci
 
 COPY frontend/RT-CODE/ ./

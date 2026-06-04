@@ -47,6 +47,8 @@ function isSupportedLanguage(language) {
 }
 
 function EditorPage() {
+  const MIN_OUTPUT_HEIGHT = 140;
+  const MAX_OUTPUT_HEIGHT = 420;
   const navigate = useNavigate();
   const { roomId = "" } = useParams();
   const [searchParams] = useSearchParams();
@@ -59,6 +61,7 @@ function EditorPage() {
     output: "",
     error: "",
   });
+  const [outputHeight, setOutputHeight] = useState(220);
   const [editorReady, setEditorReady] = useState(false);
   const editorRef = useRef(null);
   const userColorRef = useRef(getRandomColor());
@@ -263,6 +266,27 @@ function EditorPage() {
     navigate(`/?username=${encodeURIComponent(username)}`, { replace: true });
   };
 
+  const handleOutputResizeStart = event => {
+    event.preventDefault();
+
+    const startY = event.clientY;
+    const startHeight = outputHeight;
+
+    const handlePointerMove = moveEvent => {
+      const nextHeight = startHeight - (moveEvent.clientY - startY);
+      setOutputHeight(Math.min(MAX_OUTPUT_HEIGHT, Math.max(MIN_OUTPUT_HEIGHT, nextHeight)));
+      editorRef.current?.layout();
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
   const outputText =
     [runState.output, runState.error].filter(Boolean).join("\n") ||
     "Run the current room code to see output here.";
@@ -342,10 +366,16 @@ function EditorPage() {
         </div>
       </aside>
 
-      <section className="editor-panel">
+      <section className="editor-panel" style={{ "--output-height": `${outputHeight}px` }}>
         <div className="editor-toolbar">
-          <div className="toolbar-pill">
-            {getLanguageConfig(language).label}
+          <div className="toolbar-meta">
+            <div className="toolbar-pill">
+              {getLanguageConfig(language).label}
+            </div>
+            <div className="session-chip">
+              <span className="session-dot" />
+              Collaborative session live
+            </div>
           </div>
           <button
             type="button"
@@ -364,16 +394,45 @@ function EditorPage() {
             theme="vs-dark"
             onMount={handleMount}
             options={{
+              automaticLayout: true,
               cursorSmoothCaretAnimation: "on",
+              fontSize: 14,
+              lineHeight: 22,
+              minimap: { enabled: false },
+              overviewRulerBorder: false,
+              padding: { top: 18, bottom: 18 },
+              renderLineHighlight: "gutter",
+              roundedSelection: true,
+              scrollBeyondLastLine: false,
+              scrollbar: {
+                alwaysConsumeMouseWheel: false,
+                horizontalScrollbarSize: 10,
+                useShadows: false,
+                verticalScrollbarSize: 10,
+              },
               smoothScrolling: true,
             }}
           />
         </div>
 
+        <button
+          type="button"
+          className="panel-resizer"
+          aria-label="Resize output panel"
+          onPointerDown={handleOutputResizeStart}
+        >
+          <span />
+        </button>
+
         <div className="output-panel">
-          <div className="sidebar-heading-row">
-            <h2>Output</h2>
-            <span className="notes-badge">Run</span>
+          <div className="output-header">
+            <div className="sidebar-heading-row">
+              <h2>Execution Output</h2>
+              <span className="notes-badge">Run</span>
+            </div>
+            <p className="output-caption">
+              Console results update here after each run.
+            </p>
           </div>
 
           <pre className={`output-console${runState.error ? " output-console-error" : ""}`}>
