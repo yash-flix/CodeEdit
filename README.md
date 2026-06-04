@@ -98,9 +98,15 @@ The entire application is containerized using Docker and deployed on AWS ECS Far
           │
           ▼
 ┌─────────────────────┐
+
 │ Yjs CRDT Engine     │
 └─────────────────────┘
 ```
+## Architecture
+<img width="500" height="850" alt="architecture" src="https://github.com/user-attachments/assets/0df74c18-9962-4f86-88e3-80de455f9008" />
+
+##System Design
+<img width="622" height="1176" alt="SystremDesign" src="https://github.com/user-attachments/assets/b5676102-7b32-4c2f-a505-7a19e740078f" />
 
 ---
 
